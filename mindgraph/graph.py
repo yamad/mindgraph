@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-import functools
 from typing import (Any, Callable, Generator, Iterator, List, Optional, Set,
                     Tuple)
 
@@ -52,28 +51,22 @@ class Node(object):
         return self._threads[key]
 
     def __repr__(self) -> str:
-        return self.custom_repr(self, 0)
+        return self.custom_repr(self, depth=0)
 
     @staticmethod
     def custom_repr(node: "Node", depth: int = 0) -> str:
+        indent = "    " * depth
+        bullet = "- " if depth != 0 else ""
 
+        line = '{indent}{bullet}{node.name}'.format(**locals())
         if len(node.threads) > 0:
+            line += ":"
 
-            if depth == 0:
-                return node.name + ":\n" + '\n'.join(
-                    map(functools.partial(node.custom_repr, depth=depth + 1),
-                        node.threads))
-            elif depth == 1:
-                return '- ' + node.name + ":\n" + '\n'.join(
-                    map(functools.partial(node.custom_repr, depth=depth + 1),
-                        node.threads))
-            else:
-                return "    " * (depth - 1) + "- {}".format(node.name) + \
-                       ":\n" + '\n'.join(map(
-                                         functools.partial(node.custom_repr,
-                                                           depth=depth + 1),
-                                         node.threads))
-        return "    " * (depth - 1) + "- {}".format(node.name)
+        children = [node.custom_repr(n, depth+1) for n in node.threads]
+        return '\n'.join((line, *children))
+
+    def __str__(self) -> str:
+        return dump(load(str(self.__repr__())), default_flow_style=False)
 
     def _postorder(self,
                    depth: int = 0,
@@ -108,9 +101,6 @@ class Node(object):
         def node_key(node):
             return (-node.weight, node.name)
         return (x[1] for x in self._postorder(node_key=node_key))
-
-    def __str__(self) -> str:
-        return dump(load(str(self.__repr__())), default_flow_style=False)
 
     @property
     def dependencies(self) -> List["Node"]:
